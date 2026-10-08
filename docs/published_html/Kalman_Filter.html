@@ -1,0 +1,198 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>Kalman_Filter</title><meta name="generator" content="MATLAB 9.3"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2018-06-08"><meta name="DC.source" content="Kalman_Filter.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><pre class="codeinput">detectedLocations = num2cell(2*randn(1,40) + (1:40));
+detectedLocations{1} = [];
+  <span class="keyword">for</span> idx = 16: 25
+      detectedLocations{idx} = [];
+  <span class="keyword">end</span>
+
+figure;
+hold <span class="string">on</span>;
+ylabel(<span class="string">'Location'</span>);
+ylim([0,50]);
+xlabel(<span class="string">'Time'</span>);
+xlim([0,length(detectedLocations)]);
+kalman = [];
+<span class="keyword">for</span> idx = 1: length(detectedLocations)
+   location = detectedLocations{idx};
+   <span class="keyword">if</span> isempty(kalman)
+     <span class="keyword">if</span> ~isempty(location)
+
+       stateModel = [1 1;0 1];
+       measurementModel = [1 0];
+       kalman = vision.KalmanFilter(stateModel,measurementModel,<span class="string">'ProcessNoise'</span>,1e-4,<span class="string">'MeasurementNoise'</span>,4);
+      kalman.State = [location, 0];
+     <span class="keyword">end</span>
+   <span class="keyword">else</span>
+     trackedLocation = predict(kalman);
+     <span class="keyword">if</span> ~isempty(location)
+       plot(idx, location,<span class="string">'k+'</span>);
+      d = distance(kalman,location);
+       title(sprintf(<span class="string">'Distance:%f'</span>, d));
+       trackedLocation = correct(kalman,location);
+     <span class="keyword">else</span>
+       title(<span class="string">'Missing detection'</span>);
+     <span class="keyword">end</span>
+     pause(0.2);
+     plot(idx,trackedLocation,<span class="string">'ro'</span>);
+   <span class="keyword">end</span>
+ <span class="keyword">end</span>
+legend(<span class="string">'Detected locations'</span>,<span class="string">'Predicted/corrected locations'</span>);
+
+
+x = 1;
+len = 100;
+z = x + 0.1 * randn(1,len);
+
+
+stateTransitionModel = 1;
+measurementModel = 1;
+obj = vision.KalmanFilter(stateTransitionModel,measurementModel,<span class="string">'StateCovariance'</span>,1,<span class="string">'ProcessNoise'</span>,1e-5,<span class="string">'MeasurementNoise'</span>,1e-2);
+
+z_corr = zeros(1,len);
+<span class="keyword">for</span> idx = 1: len
+ predict(obj);
+ z_corr(idx) = correct(obj,z(idx));
+<span class="keyword">end</span>
+
+
+
+figure, plot(x * ones(1,len),<span class="string">'g-'</span>);
+hold <span class="string">on</span>;
+plot(1:len,z,<span class="string">'b+'</span>,1:len,z_corr,<span class="string">'r-'</span>);
+legend(<span class="string">'Original signal'</span>,<span class="string">'Noisy signal'</span>,<span class="string">'Filtered signal'</span>);
+</pre><img vspace="5" hspace="5" src="Kalman_Filter_01.png" alt=""> <img vspace="5" hspace="5" src="Kalman_Filter_02.png" alt=""> <p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2017b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+detectedLocations = num2cell(2*randn(1,40) + (1:40));
+detectedLocations{1} = [];
+  for idx = 16: 25
+      detectedLocations{idx} = [];
+  end
+  
+figure;
+hold on;
+ylabel('Location');
+ylim([0,50]);
+xlabel('Time');
+xlim([0,length(detectedLocations)]);
+kalman = [];
+for idx = 1: length(detectedLocations)
+   location = detectedLocations{idx};
+   if isempty(kalman)
+     if ~isempty(location)
+
+       stateModel = [1 1;0 1];
+       measurementModel = [1 0];
+       kalman = vision.KalmanFilter(stateModel,measurementModel,'ProcessNoise',1e-4,'MeasurementNoise',4);
+      kalman.State = [location, 0];
+     end
+   else
+     trackedLocation = predict(kalman);
+     if ~isempty(location)
+       plot(idx, location,'k+');
+      d = distance(kalman,location);
+       title(sprintf('Distance:%f', d));
+       trackedLocation = correct(kalman,location);
+     else
+       title('Missing detection');
+     end
+     pause(0.2);
+     plot(idx,trackedLocation,'ro');
+   end
+ end
+legend('Detected locations','Predicted/corrected locations');
+
+
+x = 1;
+len = 100;
+z = x + 0.1 * randn(1,len);
+
+
+stateTransitionModel = 1;
+measurementModel = 1;
+obj = vision.KalmanFilter(stateTransitionModel,measurementModel,'StateCovariance',1,'ProcessNoise',1e-5,'MeasurementNoise',1e-2);
+
+z_corr = zeros(1,len);
+for idx = 1: len
+ predict(obj);
+ z_corr(idx) = correct(obj,z(idx));
+end
+
+
+
+figure, plot(x * ones(1,len),'g-'); 
+hold on;
+plot(1:len,z,'b+',1:len,z_corr,'r-');
+legend('Original signal','Noisy signal','Filtered signal');
+
+
+
+
+##### SOURCE END #####
+--></body></html>
